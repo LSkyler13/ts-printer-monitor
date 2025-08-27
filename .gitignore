@@ -1,0 +1,17 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Project outputs (generated)
+app-report.html
+app-printers.json
+connectivity.json
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.pkg

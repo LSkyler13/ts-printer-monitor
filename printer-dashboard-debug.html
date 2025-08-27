@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VCU Technology Services • Printer Status Dashboard</title>
+  <style>
+    :root{
+      --gold:#FEC52E; --black:#000; --body:#ffffff;
+      --border:#dedede; --muted:#6b7280;
+      --ok:#15803d; --warn:#b45309; --err:#dc2626;
+      --cyan:#00bcd4; --magenta:#ff00ff; --yellow:#ffd400; --k:#333333;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:#f5f6f7;color:#111;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+
+    /* Top banner */
+    .banner{background:var(--black); color:var(--gold); border-bottom:3px solid var(--gold);
+      display:flex; align-items:center; gap:16px; padding:14px 18px; position:sticky; top:0; z-index:10;}
+    .banner img{height:42px; object-fit:contain}
+    .banner h1{margin:0; font-weight:800; font-size:22px; letter-spacing:.2px}
+    .banner .spacer{flex:1}
+    .banner .stamp{font-size:13px; opacity:.9}
+
+    /* Toolbar */
+    .toolbar{max-width:1200px;margin:14px auto 0; padding:0 18px 8px; display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+    .btn{appearance:none;border:1px solid #000;background:#fff;padding:10px 14px;border-radius:8px;font-weight:700;cursor:pointer}
+    .btn.primary{background:var(--gold);border-color:var(--gold);color:#000}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .muted{color:var(--muted)}
+
+    /* Page content */
+    .container{max-width:1200px;margin:0 auto; padding:0 18px 24px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:12px}
+    .card .body{padding:12px}
+
+    /* Section titles like report */
+    .section-title{margin:18px 0 8px; font-weight:800; background:var(--gold); color:#000;
+      padding:8px 12px; border-radius:8px; border:1px solid #e2c05d;}
+
+    /* Tables (match report) */
+    table{width:100%;border-collapse:collapse;font-size:14px;background:#fff}
+    th,td{border:1px solid #ddd;padding:8px;text-align:left;vertical-align:top}
+    thead th{background:var(--gold); color:#000; font-weight:800}
+    tbody tr:nth-child(even){background:#fafafa}
+
+    /* CMYK header coloring for the main table */
+    .th-cyan{background:var(--cyan) !important; color:#001b1f}
+    .th-magenta{background:var(--magenta) !important; color:#1b001b}
+    .th-yellow{background:var(--yellow) !important; color:#1b1b00}
+    .th-black{background:var(--k) !important; color:#fff}
+
+    /* Collapsible logs */
+    details{background:#fff;border:1px solid var(--border);border-radius:10px;margin-top:12px}
+    details>summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:700}
+    details>summary::-webkit-details-marker{display:none}
+    .logs{padding:0 14px 12px}
+    .logs .kv{font-size:13px}
+    .logs pre{white-space:pre-wrap;background:#0b0b0b;color:#ddd;padding:10px;border-radius:10px;overflow:auto;max-height:40vh}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+    .kbd{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f1f5f9;border:1px solid #e2e8f0;border-bottom-width:2px;padding:2px 6px;border-radius:6px}
+
+    /* Text-only emphasis for low paper across ALL tables */
+    .t-l2{ color: var(--gold); font-weight: 800; }     /* 2 Bar → yellow text */
+    .t-l1, .t-l0{ color: var(--err); font-weight: 800; } /* 1/0 Bar → red text */
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="banner">
+    <img src="vcutsbanner.png" alt="VCU" onerror="this.style.display='none'">
+    <h1>VCU Technology Services Printer Status Report</h1>
+    <div class="spacer"></div>
+    <div class="stamp"><span id="ts">—</span></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="toolbar">
+    <button class="btn primary" id="runBtn">Run Full Check</button>
+    <button class="btn" id="refreshBtn">Refresh Report</button>
+    <a class="btn" href="/app-report.html" target="_blank" rel="noopener">Open Raw Report</a>
+    <span class="muted">Report path: <span class="kbd">/app-report.html</span></span>
+    <span class="muted" id="runStatus" style="margin-left:auto">Status: <span id="statusText">Idle</span></span>
+  </div>
+
+  <div class="container">
+    <!-- Main table (from report) -->
+    <div class="card">
+      <div class="body" id="tableContainer"><p class="muted">Loading…</p></div>
+    </div>
+
+    <!-- Low Paper -->
+    <div class="section-title">Attention Needed: Low Paper Levels</div>
+    <div class="card">
+      <div class="body" id="lowPaperContainer"><p class="muted">Waiting for report…</p></div>
+    </div>
+
+    <!-- Errors -->
+    <div class="section-title">Errors</div>
+    <div class="card">
+      <div class="body" id="errorLog"><p class="muted">No run yet.</p></div>
+    </div>
+
+    <!-- Collapsible run logs -->
+    <details id="logsPanel">
+      <summary>Run Logs</summary>
+      <div class="logs" id="logs">
+        <div class="kv muted" id="ranAt">Ran at: —</div>
+        <div class="kv" id="overall"></div>
+        <div id="steps"></div>
+      </div>
+    </details>
+  </div>
+
+  <script>
+    const runBtn = document.getElementById('runBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const tableContainer = document.getElementById('tableContainer');
+    const lowPaperContainer = document.getElementById('lowPaperContainer');
+    const errorLog = document.getElementById('errorLog');
+    const tsEl = document.getElementById('ts');
+    const statusText = document.getElementById('statusText');
+
+    function setStatus(txt, cls){ statusText.textContent = txt; statusText.className = cls || ''; }
+    function escapeHTML(s){ return (s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+    // Parse integer from "2 Bar" etc. Null for N/A/empty.
+    function parseBars(text){
+      const t = (text||'').trim().toLowerCase();
+      if(!t || t==='n/a' || t==='na' || t==='—' || t==='-') return null;
+      const m = t.match(/(\d+)/);
+      return m ? parseInt(m[1],10) : null;
+    }
+
+    function colorizeHeaders(table){
+      const map = {'cyan':'th-cyan','magenta':'th-magenta','yellow':'th-yellow','black':'th-black'};
+      table.querySelectorAll('thead th').forEach(th=>{
+        const key = th.textContent.trim().toLowerCase();
+        const cls = map[key];
+        if(cls) th.classList.add(cls);
+      });
+    }
+
+    function updateTimestampFrom(doc){
+      const t = doc.querySelector('.timestamp, .time, #timestamp')?.textContent?.trim();
+      tsEl.textContent = t || new Date().toLocaleString();
+    }
+
+    // Highlight 2/1/0 Bar text (applies to ALL tables passed in)
+    function highlightDrawerLevels(table){
+      const headerCells = Array.from(table.querySelectorAll('thead th, thead td'));
+      const drawerIdxs = headerCells
+        .map((th, i) => ({ i, name: th.textContent.trim().toLowerCase() }))
+        .filter(h => h.name.startsWith('drawer'))
+        .map(h => h.i);
+
+      if(!drawerIdxs.length) return;
+
+      table.querySelectorAll('tbody tr').forEach(tr=>{
+        drawerIdxs.forEach(i=>{
+          const td = tr.children[i];
+          if(!td) return;
+          const n = parseBars(td.textContent);
+          td.classList.remove('t-l0','t-l1','t-l2');
+          if(n === 2) td.classList.add('t-l2');
+          else if(n === 1 || n === 0) td.classList.add('t-l1'); // 0 & 1 both red
+        });
+      });
+    }
+
+    // Build a structured representation of the main table so we can render clean low-paper table
+    function extractTableData(mainTable){
+      const headers = Array.from(mainTable.querySelectorAll('thead th, thead td')).map(th=>th.textContent.trim());
+      const printerIdx = headers.findIndex(h => h.toLowerCase().includes('printer'));
+      const drawerCols = headers
+        .map((h,i)=>({i, label:h.trim()}))
+        .filter(x => /^drawer\s*\d+/i.test(x.label));
+
+      const rows = [];
+      mainTable.querySelectorAll('tbody tr').forEach(tr=>{
+        const cells = Array.from(tr.children);
+        if(!cells.length) return;
+        const printerHTML = cells[printerIdx >=0 ? printerIdx : 0].innerHTML; // preserve link
+        const drawers = {};
+        drawerCols.forEach(dc=>{
+          drawers[dc.label] = (cells[dc.i]?.textContent || '').trim();
+        });
+        rows.push({ printerHTML, drawers });
+      });
+
+      return { drawerCols, rows };
+    }
+
+    function buildLowPaperTableFromData(data){
+      // Filter to rows where any drawer is <=2
+      const filtered = data.rows.filter(r =>
+        Object.values(r.drawers).some(v => { const n = parseBars(v); return n !== null && n <= 2; })
+      );
+
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      const htr = document.createElement('tr');
+      const hPrinter = document.createElement('th'); hPrinter.textContent = 'Printer'; htr.appendChild(hPrinter);
+      data.drawerCols.forEach(dc => { const th=document.createElement('th'); th.textContent=dc.label; htr.appendChild(th); });
+      thead.appendChild(htr); table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      filtered.forEach(r=>{
+        const tr = document.createElement('tr');
+
+        const tdP = document.createElement('td'); tdP.innerHTML = r.printerHTML; tr.appendChild(tdP);
+
+        data.drawerCols.forEach(dc => {
+          const td = document.createElement('td');
+          const val = (r.drawers[dc.label] || '').trim();
+          td.textContent = val || 'N/A';
+          const n = parseBars(val);
+          if(n === 2) td.classList.add('t-l2');
+          else if(n === 1 || n === 0) td.classList.add('t-l1');
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+
+      return { table, count: filtered.length };
+    }
+
+    // ----- main report fetch + render -----
+    async function fetchReport(){
+      const res = await fetch('/app-report.html?ts=' + Date.now(), {cache:'no-store'});
+      if(!res.ok){
+        tableContainer.innerHTML = '<p class="err">Could not load <span class="kbd">app-report.html</span> ('+res.status+').</p>';
+        lowPaperContainer.innerHTML = '<p class="muted">Waiting for report…</p>';
+        return;
+      }
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      updateTimestampFrom(doc);
+
+      const table = doc.querySelector('table');
+      tableContainer.innerHTML = '';
+      if(table){
+        colorizeHeaders(table);
+        // highlight drawers on the main table
+        highlightDrawerLevels(table);
+        tableContainer.appendChild(table);
+
+        // Low paper table from parsed data (then highlight it too)
+        const data = extractTableData(table);
+        const { table: lowTbl, count } = buildLowPaperTableFromData(data);
+        highlightDrawerLevels(lowTbl);
+        lowPaperContainer.innerHTML = '';
+        if(count){ lowPaperContainer.appendChild(lowTbl); }
+        else{ lowPaperContainer.innerHTML = '<p class="ok">All drawers above 2 bars.</p>'; }
+      }else{
+        tableContainer.innerHTML = '<p class="warn">No table element found in report.</p>';
+        lowPaperContainer.innerHTML = '<p class="muted">Waiting for report…</p>';
+      }
+
+      // If the report already has an Errors UL, show it unless the run parser fills it later.
+      const errHeader = Array.from(doc.querySelectorAll('h2, .section-title')).find(h => /errors/i.test(h.textContent));
+      if(errHeader){
+        const next = errHeader.nextElementSibling;
+        if(next && next.tagName === 'UL' && next.children.length && !errorLog.dataset.filledFromRun){
+          const ul = document.createElement('ul');
+          Array.from(next.children).forEach(li=>{ const x=document.createElement('li'); x.textContent=li.textContent; ul.appendChild(x); });
+          errorLog.innerHTML=''; errorLog.appendChild(ul);
+        }
+      }
+    }
+
+    // ----- Error log from latest run (Step 2 stdout) -----
+    function extractErrorLogFromRun(json){
+      errorLog.dataset.filledFromRun = '1';
+      try{
+        if(!json || !Array.isArray(json.logs)){ errorLog.innerHTML = '<p class="muted">No run yet.</p>'; return; }
+        const appStep = json.logs.find(l => (l.cmd||'').includes('app.py'));
+        const out = appStep ? (appStep.stdout||'') : '';
+        if(!out){ errorLog.innerHTML = '<p class="ok">No errors reported in latest run.</p>'; return; }
+
+        const lines = out.split(/\r?\n/);
+        const results = [];
+        let current = null, inErrors = false;
+        for(const line of lines){
+          const m = line.match(/^==\s*(.*?)\s*==/);
+          if(m){
+            if(current && current.errors.length) results.push(current);
+            current = { printer: m[1].trim(), errors: [] };
+            inErrors = false; continue;
+          }
+          if(!current) continue;
+          if(/^\s*Errors:\s*$/.test(line)){ inErrors = true; continue; }
+          if(inErrors){
+            const item = line.match(/^\s*-\s+(.*\S)\s*$/);
+            if(item) current.errors.push(item[1]);
+            if(line.trim()==='') inErrors = false;
+          }
+        }
+        if(current && current.errors.length) results.push(current);
+
+        if(!results.length){ errorLog.innerHTML = '<p class="ok">No errors reported in latest run.</p>'; return; }
+
+        const ul = document.createElement('ul');
+        results.forEach(r=>{ r.errors.forEach(e=>{ const li=document.createElement('li'); li.textContent = `${r.printer}: ${e}`; ul.appendChild(li); }); });
+        errorLog.innerHTML=''; errorLog.appendChild(ul);
+      }catch(e){
+        console.error(e);
+        errorLog.innerHTML = '<p class="err">Failed to parse error log.</p>';
+      }
+    }
+
+    // ----- Logs rendering (collapsible) -----
+    function renderLogs(json){
+      const ranAt = document.getElementById('ranAt');
+      const overall = document.getElementById('overall');
+      const steps = document.getElementById('steps');
+      ranAt.textContent = 'Ran at: ' + (json?.ran_at || '—');
+      overall.innerHTML = '<strong>Status:</strong> ' + (json?.ok ? '<span class="ok">OK</span>' : '<span class="err">FAILED</span>');
+      steps.innerHTML = '';
+      (json?.logs||[]).forEach((l, i)=>{
+        const wrap = document.createElement('div');
+        wrap.style.marginTop = '10px';
+        wrap.innerHTML = `
+          <div><strong>Step ${i+1}</strong>: <span class="kbd">${escapeHTML(l.cmd||'')}</span></div>
+          <div>Return code: <span class="${l.rc===0?'ok':'err'}">${l.rc}</span></div>
+          ${l.stdout? `<div><em>stdout</em><pre>${escapeHTML(l.stdout)}</pre></div>`:''}
+          ${l.stderr? `<div><em>stderr</em><pre>${escapeHTML(l.stderr)}</pre></div>`:''}
+        `;
+        steps.appendChild(wrap);
+      });
+    }
+
+    // ----- Run pipeline -----
+    async function runCheck(){
+      setStatus('Running…','warn'); runBtn.disabled = true; refreshBtn.disabled = true;
+      try{
+        const res = await fetch('/run-check', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({trigger:'manual'})});
+        const txt = await res.text();
+        let data = null; try{ data = JSON.parse(txt); }catch{}
+        if(!res.ok){
+          setStatus(`Error (${res.status})`,'err');
+          if(data) renderLogs(data);
+          extractErrorLogFromRun(data);
+          return;
+        }
+        setStatus('Done','ok');
+        renderLogs(data);
+        extractErrorLogFromRun(data);
+        await fetchReport();
+      }catch(e){
+        setStatus('Error','err'); console.error(e);
+      }finally{
+        runBtn.disabled = false; refreshBtn.disabled = false;
+      }
+    }
+
+    // Wire up
+    runBtn.addEventListener('click', runCheck);
+    refreshBtn.addEventListener('click', fetchReport);
+
+    // First load
+    fetchReport().catch(()=>{});
+  </script>
+</body>
+</html>
