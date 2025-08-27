@@ -1,0 +1,24 @@
+{
+    "printers": [
+      { "name": "HSLFirstFloor",           "url": "https://hsl.1stfloor.ptr.vcu.edu:8443/" },
+      { "name": "HSLSecondFloor",          "url": "https://hsl.2ndfloor.ptr.vcu.edu:8443/" },
+      { "name": "PollakFloor4",            "url": "https://oneprint.pollak4.ptr.vcu.edu:8443/rps/" },
+      { "name": "PollakFloor3",            "url": "https://oneprint.pollak3.ptr.vcu.edu:8443/rps/" },
+      { "name": "SmithRoom130",            "url": "https://smith.130.ptr.vcu.edu:8443/" },
+      { "name": "SmithRoom350",            "url": "https://smith.350.ptr.vcu.edu:8443/" },
+      { "name": "Frank101",                "url": "https://franklint.101.ptr.vcu.edu:8443/rps/" },
+      { "name": "CHPRoom6030",             "url": "https://chp.6030.ptr.vcu.edu:8443/" },
+      { "name": "TempleRoom1143",          "url": "https://temple.1143.ptr.vcu.edu:8443/" },
+      { "name": "HarrisFloor5Room5116",    "url": "https://harris.5116.ptr.vcu.edu:8443/rps/" },
+      { "name": "SONB2Floor2Room623",      "url": "https://2gu00623.sonb2.ptr.vcu.edu:8443/" },
+      { "name": "MMECFloor6",              "url": "https://4bt04340.mmec6.ptr.vcu.edu:8443/" },
+      { "name": "HuntonFloor2",            "url": "https://2gu01354.hsct2.ptr.vcu.edu:8443/rps/" },
+      { "name": "SneadFloor2",             "url": "https://2jg04803.sndh2.ptr.vcu.edu:8443/rps/" }
+    ],
+    "http": {
+      "timeout_seconds": 15,
+      "verify_ssl": false,
+      "user_agent": "Mozilla/5.0"
+    }
+  }
+  
