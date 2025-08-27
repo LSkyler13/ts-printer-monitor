@@ -1,0 +1,51 @@
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Printer Status</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f8f9fa; }
+    .header { background-color: #000000; color: #FEC52E; padding: 20px; text-align: center; position: relative; }
+    .header img { position:absolute; top: 10px; left: 10px; height: 80px; }
+    .header .timestamp { position:absolute; top: 10px; right: 10px; color: #FEC52E; }
+    .container { padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }
+    th { background-color: #FEC52E; color: #000000; }
+    .cyan { background-color: cyan; color: black; }
+    .magenta { background-color: magenta; color: black; }
+    .yellow { background-color: #FEC52E; color: #000000; }
+    .black { background-color: black; color: white; }
+    tr:nth-child(even) { background-color: #f2f2f2; }
+    .empty-paper { color: red; }
+    .one-bar { color: red; }
+    .two-bar { color: darkkhaki; }
+    .printer-name a { color: inherit; text-decoration: none; }
+    .low-toner { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="vcutsbanner.png" alt="VCU Technology Services">
+    <h1>VCU Technology Services Printer Status Report</h1>
+    <div class="timestamp">2025-08-19 11:26:12</div>
+  </div>
+  <div class="container">
+    <table class='printer-table'>
+      <thead>
+        <tr>
+          <th>Printer</th>
+          <th class='cyan'>Cyan</th>
+          <th class='magenta'>Magenta</th>
+          <th class='yellow'>Yellow</th>
+          <th class='black'>Black</th>
+          <th>Drawer 1</th>
+          <th>Drawer 2</th>
+          <th>Drawer 3</th>
+          <th>Drawer 4</th>
+        </tr>
+      </thead>
+      <tbody>
+<tr><td class='printer-name'><a href='https://hsl.1stfloor.ptr.vcu.edu:8443/'>HSLFirstFloor</a></td><td>100%</td><td>20%</td><td>100%</td><td>50%</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td><td>N/A</td></tr><tr><td class='printer-name'><a href='https://oneprint.pollak4.ptr.vcu.edu:8443/rps/'>PollakFloor4</a></td><td>30%</td><td>20%</td><td>40%</td><td>30%</td><td class='two-bar'>2 Bar</td><td>3 Bar</td><td>3 Bar</td><td>N/A</td></tr><tr><td class='printer-name'><a href='https://oneprint.pollak3.ptr.vcu.edu:8443/rps/'>PollakFloor3</a></td><td>70%</td><td>40%</td><td>70%</td><td>50%</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td><td>N/A</td></tr><tr><td class='printer-name'><a href='https://smith.350.ptr.vcu.edu:8443/'>SmithRoom350</a></td><td>40%</td><td>40%</td><td>30%</td><td>30%</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td><td>N/A</td></tr><tr><td class='printer-name'><a href='https://franklint.101.ptr.vcu.edu:8443/rps/'>Frank101</a></td><td>100%</td><td>90%</td><td>90%</td><td>90%</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td><td>N/A</td></tr><tr><td class='printer-name'><a href='https://temple.1143.ptr.vcu.edu:8443/'>TempleRoom1143</a></td><td>100%</td><td>100%</td><td>100%</td><td>100%</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td><td>N/A</td></tr><tr><td class='printer-name'><a href='https://harris.5116.ptr.vcu.edu:8443/rps/'>HarrisFloor5Room5116</a></td><td>90%</td><td>90%</td><td>80%</td><td>50%</td><td>3 Bar</td><td>N/A</td><td>N/A</td><td>N/A</td></tr><tr><td class='printer-name'><a href='https://2gu00623.sonb2.ptr.vcu.edu:8443/'>SONB2Floor2Room623</a></td><td>80%</td><td>80%</td><td>80%</td><td>30%</td><td>3 Bar</td><td class='two-bar'>2 Bar</td><td>3 Bar</td><td>3 Bar</td></tr><tr><td class='printer-name'><a href='https://4bt04340.mmec6.ptr.vcu.edu:8443/'>MMECFloor6</a></td><td>90%</td><td>100%</td><td>100%</td><td>70%</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td></tr><tr><td class='printer-name'><a href='https://2gu01354.hsct2.ptr.vcu.edu:8443/rps/'>HuntonFloor2</a></td><td>70%</td><td>70%</td><td>70%</td><td>60%</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td></tr><tr><td class='printer-name'><a href='https://2jg04803.sndh2.ptr.vcu.edu:8443/rps/'>SneadFloor2</a></td><td>80%</td><td>80%</td><td>80%</td><td>60%</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td><td>3 Bar</td></tr></tbody></table><h2>Attention Needed: Low Paper Levels</h2><table class='printer-table'><thead><tr><th>Printer</th><th>Drawer 1</th><th>Drawer 2</th><th>Drawer 3</th><th>Drawer 4</th></tr></thead><tbody><tr><td class='printer-name'>PollakFloor4</td><td class='two-bar'>2 Bar</td><td>3 Bar</td><td>3 Bar</td><td>N/A</td></tr><tr><td class='printer-name'>SONB2Floor2Room623</td><td>3 Bar</td><td class='two-bar'>2 Bar</td><td>3 Bar</td><td>3 Bar</td></tr></tbody></table><h2>Errors</h2><ul class='alert'><li>HSLFirstFloor: The magenta toner is low.</li><li>PollakFloor4: The magenta toner is low.</li><li>PollakFloor4: The black toner is low.</li><li>SmithRoom350: The black toner is low.</li><li>SONB2Floor2Room623: The black toner is low.</li></ul>
+  </div>
+</body>
+</html>

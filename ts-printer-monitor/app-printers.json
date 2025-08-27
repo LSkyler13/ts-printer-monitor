@@ -1,0 +1,220 @@
+[
+  {
+    "name": "HSLFirstFloor",
+    "url": "https://hsl.1stfloor.ptr.vcu.edu:8443/",
+    "address": "",
+    "toner": {
+      "Cyan": "100%",
+      "Magenta": "20%",
+      "Yellow": "100%",
+      "Black": "50%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "3 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "N/A"
+    },
+    "errors": [
+      "The magenta toner is low."
+    ]
+  },
+  {
+    "name": "PollakFloor4",
+    "url": "https://oneprint.pollak4.ptr.vcu.edu:8443/rps/",
+    "address": "",
+    "toner": {
+      "Cyan": "30%",
+      "Magenta": "20%",
+      "Yellow": "40%",
+      "Black": "30%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "2 Bar",
+      "Drawer 2": "3 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "N/A"
+    },
+    "errors": [
+      "The magenta toner is low.",
+      "The black toner is low."
+    ]
+  },
+  {
+    "name": "PollakFloor3",
+    "url": "https://oneprint.pollak3.ptr.vcu.edu:8443/rps/",
+    "address": "",
+    "toner": {
+      "Cyan": "70%",
+      "Magenta": "40%",
+      "Yellow": "70%",
+      "Black": "50%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "3 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "N/A"
+    },
+    "errors": []
+  },
+  {
+    "name": "SmithRoom350",
+    "url": "https://smith.350.ptr.vcu.edu:8443/",
+    "address": "",
+    "toner": {
+      "Cyan": "40%",
+      "Magenta": "40%",
+      "Yellow": "30%",
+      "Black": "30%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "3 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "N/A"
+    },
+    "errors": [
+      "The black toner is low."
+    ]
+  },
+  {
+    "name": "Frank101",
+    "url": "https://franklint.101.ptr.vcu.edu:8443/rps/",
+    "address": "",
+    "toner": {
+      "Cyan": "100%",
+      "Magenta": "90%",
+      "Yellow": "90%",
+      "Black": "90%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "3 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "N/A"
+    },
+    "errors": []
+  },
+  {
+    "name": "TempleRoom1143",
+    "url": "https://temple.1143.ptr.vcu.edu:8443/",
+    "address": "",
+    "toner": {
+      "Cyan": "100%",
+      "Magenta": "100%",
+      "Yellow": "100%",
+      "Black": "100%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "3 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "N/A"
+    },
+    "errors": []
+  },
+  {
+    "name": "HarrisFloor5Room5116",
+    "url": "https://harris.5116.ptr.vcu.edu:8443/rps/",
+    "address": "",
+    "toner": {
+      "Cyan": "90%",
+      "Magenta": "90%",
+      "Yellow": "80%",
+      "Black": "50%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "N/A",
+      "Drawer 3": "N/A",
+      "Drawer 4": "N/A"
+    },
+    "errors": []
+  },
+  {
+    "name": "SONB2Floor2Room623",
+    "url": "https://2gu00623.sonb2.ptr.vcu.edu:8443/",
+    "address": "",
+    "toner": {
+      "Cyan": "80%",
+      "Magenta": "80%",
+      "Yellow": "80%",
+      "Black": "30%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "2 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "3 Bar"
+    },
+    "errors": [
+      "The black toner is low."
+    ]
+  },
+  {
+    "name": "MMECFloor6",
+    "url": "https://4bt04340.mmec6.ptr.vcu.edu:8443/",
+    "address": "",
+    "toner": {
+      "Cyan": "90%",
+      "Magenta": "100%",
+      "Yellow": "100%",
+      "Black": "70%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "3 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "3 Bar"
+    },
+    "errors": []
+  },
+  {
+    "name": "HuntonFloor2",
+    "url": "https://2gu01354.hsct2.ptr.vcu.edu:8443/rps/",
+    "address": "",
+    "toner": {
+      "Cyan": "70%",
+      "Magenta": "70%",
+      "Yellow": "70%",
+      "Black": "60%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "3 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "3 Bar"
+    },
+    "errors": []
+  },
+  {
+    "name": "SneadFloor2",
+    "url": "https://2jg04803.sndh2.ptr.vcu.edu:8443/rps/",
+    "address": "",
+    "toner": {
+      "Cyan": "80%",
+      "Magenta": "80%",
+      "Yellow": "80%",
+      "Black": "60%"
+    },
+    "paper": {
+      "Multi-Purpose Tray": "Empty",
+      "Drawer 1": "3 Bar",
+      "Drawer 2": "3 Bar",
+      "Drawer 3": "3 Bar",
+      "Drawer 4": "3 Bar"
+    },
+    "errors": []
+  }
+]
