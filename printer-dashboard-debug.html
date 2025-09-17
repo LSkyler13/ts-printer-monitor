@@ -63,10 +63,11 @@
     /* Text-only emphasis for low paper across ALL tables */
     .t-l2{ color: var(--gold); font-weight: 800; }     /* 2 Bar → yellow text */
     .t-l1, .t-l0{ color: var(--err); font-weight: 800; } /* 1/0 Bar → red text */
+
+    .low-toner { color: var(--err); font-weight: 800; }
   </style>
 </head>
 <body>
-  <!-- Header -->
   <div class="banner">
     <img src="vcutsbanner.png" alt="VCU" onerror="this.style.display='none'">
     <h1>VCU Technology Services Printer Status Report</h1>
@@ -74,7 +75,6 @@
     <div class="stamp"><span id="ts">—</span></div>
   </div>
 
-  <!-- Controls -->
   <div class="toolbar">
     <button class="btn primary" id="runBtn">Run Full Check</button>
     <button class="btn" id="refreshBtn">Refresh Report</button>
@@ -84,24 +84,20 @@
   </div>
 
   <div class="container">
-    <!-- Main table (from report) -->
     <div class="card">
       <div class="body" id="tableContainer"><p class="muted">Loading…</p></div>
     </div>
 
-    <!-- Low Paper -->
     <div class="section-title">Attention Needed: Low Paper Levels</div>
     <div class="card">
       <div class="body" id="lowPaperContainer"><p class="muted">Waiting for report…</p></div>
     </div>
 
-    <!-- Errors -->
     <div class="section-title">Errors</div>
     <div class="card">
       <div class="body" id="errorLog"><p class="muted">No run yet.</p></div>
     </div>
 
-    <!-- Collapsible run logs -->
     <details id="logsPanel">
       <summary>Run Logs</summary>
       <div class="logs" id="logs">
@@ -128,6 +124,8 @@
     function parseBars(text){
       const t = (text||'').trim().toLowerCase();
       if(!t || t==='n/a' || t==='na' || t==='—' || t==='-') return null;
+      // Handle "empty" or "no paper" as 0
+      if (t.includes('empty') || t.includes('no paper')) return 0;
       const m = t.match(/(\d+)/);
       return m ? parseInt(m[1],10) : null;
     }
