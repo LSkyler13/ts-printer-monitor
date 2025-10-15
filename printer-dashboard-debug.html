@@ -89,78 +89,86 @@
   </div>
 
   <script>
+  // --- UTILITY AND RENDER FUNCTIONS ---
   function parsePercent(text) { if (text==null) return null; const m = String(text).match(/(\d+)\s*%/); return m ? parseInt(m[1], 10) : null; }
   function parseBars(text) { if (text==null) return null; const t = String(text).trim().toLowerCase(); if (!t || t.includes('n/a')) return null; if (t.includes('empty') || t.includes('no paper') || t.startsWith('0')) return 0; const m = t.match(/(\d+)\s*bar/); return m ? parseInt(m[1], 10) : null; }
   function renderTonerCell(value, color) { const pct = parsePercent(value); if (pct === null) return `<td>${(value==null?'':value)}</td>`; return `<td><div style="display:flex; align-items:center; gap:8px;"><div class="toner-bar"><div class="toner-bar-fill ${color}" style="width:${pct}%;"></div></div><span${pct<=10?' class="low-supply-text"':''}>${pct}%</span></div></td>`; }
   function renderPaperCell(value) { const bars = parseBars(value); let c=''; if(bars!==null){if(bars<=1)c='low-supply-text';else if(bars===2)c='warn-supply-text';} return `<td class="${c}">${(value==null?'':value)}</td>`; }
+
+  // --- STATUS LOGIC (FROM YOUR WORKING FILE) ---
   function getRowStatus(d) {
-    const paperVals = Object.values(d.paper || {});
-    const tonerVals = Object.values(d.toner || {});
-    const errorsArr = (d.errors || []).map(x => String(x || '').trim()).filter(Boolean);
-
-    // Paper thresholds
-    const paperBars = paperVals.map(v => parseBars(v));
-    const hasPaperCritical = paperBars.some(b => b !== null && b <= 1);   // 0–1 bar
-    const hasPaperWarn     = !hasPaperCritical && paperBars.some(b => b === 2); // exactly 2 bars
-
-    // Toner thresholds
-    const tonerPcts = tonerVals.map(v => parsePercent(v));
-    const hasTonerCritical = tonerPcts.some(p => p === 0) ||
-                             tonerVals.some(v => /\bempty\b/i.test(String(v)));
-    const hasTonerWarn     = !hasTonerCritical && tonerPcts.some(p => p !== null && p <= 10);
-
-    // Only treat real error keywords as critical; ignore benign "no paper" unless drawers are low
-    const isRealError = (msg) => {
-      const m = String(msg).toLowerCase();
-      if (/no\s*paper/.test(m)) return hasPaperCritical || hasPaperWarn;
-      return /(jam|error|failed|timeout|replace|install|service)/i.test(m);
-    };
-    const hasErrorCritical = errorsArr.some(isRealError);
-
-    if (hasPaperCritical || hasTonerCritical || hasErrorCritical) return 'err';
-    if (hasPaperWarn || hasTonerWarn) return 'warn';
-    return 'ok';
+      let hasWarning = false; let hasError = false;
+      // An explicit error message is a critical error
+      if (d.errors && d.errors.length > 0) hasError = true;
+      // Toner <= 10% is a critical error
+      Object.values(d.toner || {}).forEach(val => { if (parsePercent(val) <= 10) hasError = true; });
+      // Paper <= 1 bar is critical, 2 bars is a warning
+      Object.values(d.paper || {}).forEach(val => { const b = parseBars(val); if (b !== null) { if (b <= 1) hasError = true; if (b === 2) hasWarning = true; } });
+      
+      if (hasError) return 'err'; 
+      if (hasWarning) return 'warn'; 
+      return 'ok';
   }
 
-  async function runAndRender() {
-    const runBtn = document.getElementById('runBtn'), refreshBtn = document.getElementById('refreshBtn'), runStatusDiv = document.getElementById('runStatus');
-    const sTime=Date.now(); runBtn.innerHTML='<span class="loader"></span> Running...'; runBtn.disabled=true; refreshBtn.disabled=true;
-    try {
-      const res = await fetch('/api/run', { method: 'POST' });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || 'Run failed');
-      renderAll(data.rows);
-      const fTime=((Date.now()-sTime)/1000).toFixed(1);
-      runStatusDiv.innerHTML=`Status: <span class="ok">Done in ${fTime}s</span>`;
-    } catch (e) {
-      const fTime=((Date.now()-sTime)/1000).toFixed(1);
-      document.getElementById('runStatus').innerHTML=`Status: <span class="err">Error after ${fTime}s</span>`;
-      console.error(e);
-    } finally {
-      runBtn.innerHTML='Run Full Check'; runBtn.disabled=false; refreshBtn.disabled=false;
+  // --- NEW DATA FETCHING & PARSING LOGIC ---
+  async function scrapeAndParseReport() {
+    const res = await fetch('/app-report.html?ts=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) {
+        throw new Error(`Could not load report file: ${res.status}`);
     }
-  }
-
-  async function refreshOnly() {
-    document.getElementById('tableContainer').innerHTML = '<p style="padding:1.5rem;" class="muted">Loading...</p>';
-    try {
-      const res = await fetch('/api/last', { cache: 'no-store' });
-      const data = await res.json();
-      if (!data.ok) {
-        // Fallback: no cache yet → run a full check
-        await runAndRender();
-        return;
-      }
-      renderAll(data.rows);
-    } catch (e) {
-      console.error(e);
-      await runAndRender();
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    
+    // Update timestamp
+    const tsEl = doc.querySelector('.timestamp');
+    document.getElementById('ts').textContent = tsEl ? tsEl.textContent : new Date().toLocaleString();
+    
+    // Find the main printer table in the report
+    const rawTable = doc.querySelector('table.printer-table');
+    if (!rawTable) {
+        throw new Error('Could not find printer table in the report file.');
     }
+    
+    const headers = Array.from(rawTable.querySelectorAll('thead th')).map(th => th.textContent.trim());
+    
+    // Parse the table rows into structured data objects
+    const printerData = Array.from(rawTable.querySelectorAll('tbody tr')).map(tr => {
+        const cells = Array.from(tr.querySelectorAll('td'));
+        const nameCell = cells[0];
+        const row = {
+            name: nameCell?.textContent.trim(),
+            url: nameCell?.querySelector('a')?.href,
+            toner: {},
+            paper: {},
+            errors: []
+        };
+        
+        headers.forEach((h, i) => {
+            const val = cells[i]?.textContent.trim();
+            if (['Cyan', 'Magenta', 'Yellow', 'Black'].includes(h)) row.toner[h] = val; 
+            if (h.startsWith('Drawer')) row.paper[h] = val;
+        });
+        return row;
+    });
+
+    // Find and parse the separate errors list
+    const errorHeader = Array.from(doc.querySelectorAll('h2')).find(h => /errors/i.test(h.textContent));
+    const errorList = errorHeader?.nextElementSibling;
+    if (errorList && errorList.tagName === 'UL') {
+        Array.from(errorList.querySelectorAll('li')).forEach(li => {
+            const parts = li.textContent.split(':');
+            const printerName = parts[0]?.trim();
+            const errorMsg = parts.slice(1).join(':').trim();
+            const targetPrinter = printerData.find(p => p.name === printerName);
+            if (targetPrinter) targetPrinter.errors.push(errorMsg);
+        });
+    }
+    
+    return printerData;
   }
 
+  // --- MAIN RENDER FUNCTION (Unchanged) ---
   function renderAll(printerData) {
-    document.getElementById('ts').textContent = new Date().toLocaleString();
-
     let mainTableHTML = `<table><thead><tr><th style="width:20px;"></th><th>Printer</th><th>Cyan</th><th>Magenta</th><th>Yellow</th><th>Black</th><th>Drawer 1</th><th>Drawer 2</th><th>Drawer 3</th><th>Drawer 4</th></tr></thead><tbody>`;
     printerData.forEach(p => {
       const s=getRowStatus(p);
@@ -209,10 +217,42 @@
     }
   }
 
+  // --- EVENT HANDLING & TRIGGERS ---
+  async function runFullCheck() {
+    const runBtn = document.getElementById('runBtn'), refreshBtn = document.getElementById('refreshBtn'), runStatusDiv = document.getElementById('runStatus');
+    const sTime=Date.now(); runBtn.innerHTML='<span class="loader"></span> Running...'; runBtn.disabled=true; refreshBtn.disabled=true;
+    try {
+      // First, trigger the backend to generate a new report
+      const runRes = await fetch('/api/run', { method: 'POST' });
+      if (!runRes.ok) throw new Error('Backend check failed');
+      // Now, scrape the newly generated report
+      const printerData = await scrapeAndParseReport();
+      renderAll(printerData);
+      const fTime=((Date.now()-sTime)/1000).toFixed(1);
+      runStatusDiv.innerHTML=`Status: <span class="ok">Done in ${fTime}s</span>`;
+    } catch (e) {
+      const fTime=((Date.now()-sTime)/1000).toFixed(1);
+      document.getElementById('runStatus').innerHTML=`Status: <span class="err">Error after ${fTime}s</span>`;
+      console.error(e);
+    } finally {
+      runBtn.innerHTML='Run Full Check'; runBtn.disabled=false; refreshBtn.disabled=false;
+    }
+  }
+
+  async function refreshDisplay() {
+    try {
+      const printerData = await scrapeAndParseReport();
+      renderAll(printerData);
+    } catch (e) {
+      console.error(e);
+      document.getElementById('tableContainer').innerHTML = `<div class="alert-box errors">${e.message}</div>`;
+    }
+  }
+
   const runBtn = document.getElementById('runBtn'), refreshBtn = document.getElementById('refreshBtn');
-  runBtn.addEventListener('click', runAndRender);
-  refreshBtn.addEventListener('click', refreshOnly);
-  document.addEventListener('DOMContentLoaded', refreshOnly);
+  runBtn.addEventListener('click', runFullCheck);
+  refreshBtn.addEventListener('click', refreshDisplay);
+  document.addEventListener('DOMContentLoaded', refreshDisplay);
   </script>
 </body>
 </html>
