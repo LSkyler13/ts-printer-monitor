@@ -89,71 +89,130 @@
   </div>
 
   <script>
-    function parsePercent(text) { if (typeof text !== 'string') return null; const m = text.match(/(\d+)\s*%/); return m ? parseInt(m[1], 10) : null; }
-    function parseBars(text) { if (typeof text !== 'string') return null; const t = text.trim().toLowerCase(); if (!t || t.includes('n/a')) return null; if (t.includes('empty') || t.includes('no paper')) return 0; const m = t.match(/(\d+)\s*bar/); return m ? parseInt(m[1], 10) : null; }
-    function renderTonerCell(value, color) { const pct = parsePercent(value); if (pct === null) return `<td>${value}</td>`; return `<td><div style="display:flex; align-items:center; gap:8px;"><div class="toner-bar"><div class="toner-bar-fill ${color}" style="width:${pct}%;"></div></div><span${pct<=10?' class="low-supply-text"':''}>${pct}%</span></div></td>`; }
-    function renderPaperCell(value) { const bars = parseBars(value); let c=''; if(bars!==null){if(bars<=1)c='low-supply-text';else if(bars===2)c='warn-supply-text';} return `<td class="${c}">${value}</td>`; }
-    function getRowStatus(d) { let w=false, e=false; if (d.errors&&d.errors.length>0)e=true; Object.values(d.toner).forEach(v=>{const p=parsePercent(v);if(p!==null&&p<=10)e=true;}); Object.values(d.paper).forEach(v=>{const b=parseBars(v);if(b!==null){if(b<=1)e=true;if(b===2)w=true;}}); if(e)return'err'; if(w)return'warn'; return'ok'; }
+  function parsePercent(text) { if (text==null) return null; const m = String(text).match(/(\d+)\s*%/); return m ? parseInt(m[1], 10) : null; }
+  function parseBars(text) { if (text==null) return null; const t = String(text).trim().toLowerCase(); if (!t || t.includes('n/a')) return null; if (t.includes('empty') || t.includes('no paper') || t.startsWith('0')) return 0; const m = t.match(/(\d+)\s*bar/); return m ? parseInt(m[1], 10) : null; }
+  function renderTonerCell(value, color) { const pct = parsePercent(value); if (pct === null) return `<td>${(value==null?'':value)}</td>`; return `<td><div style="display:flex; align-items:center; gap:8px;"><div class="toner-bar"><div class="toner-bar-fill ${color}" style="width:${pct}%;"></div></div><span${pct<=10?' class="low-supply-text"':''}>${pct}%</span></div></td>`; }
+  function renderPaperCell(value) { const bars = parseBars(value); let c=''; if(bars!==null){if(bars<=1)c='low-supply-text';else if(bars===2)c='warn-supply-text';} return `<td class="${c}">${(value==null?'':value)}</td>`; }
+  function getRowStatus(d) {
+    const paperVals = Object.values(d.paper || {});
+    const tonerVals = Object.values(d.toner || {});
+    const errorsArr = (d.errors || []).map(x => String(x || '').trim()).filter(Boolean);
 
-    async function fetchAndRender() {
-        document.getElementById('tableContainer').innerHTML = '<p style="padding:1.5rem;" class="muted">Loading report...</p>';
-        const res = await fetch('/app-report.html?ts=' + Date.now(), { cache: 'no-store' });
-        if (!res.ok) { document.getElementById('tableContainer').innerHTML = `<p style="padding:1.5rem;" class="err">Could not load report (${res.status}).</p>`; return; }
-        const html = await res.text();
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        document.getElementById('ts').textContent = doc.querySelector('.timestamp')?.textContent || new Date().toLocaleTimeString();
-        const rawTable = doc.querySelector('table');
-        if (!rawTable) { document.getElementById('tableContainer').innerHTML = `<p style="padding:1.5rem;" class="err">Report is empty.</p>`; return; }
-        const headers = Array.from(rawTable.querySelectorAll('thead th')).map(th => th.textContent.trim());
-        const printerData = Array.from(rawTable.querySelectorAll('tbody tr')).map(tr => {
-            const cells = Array.from(tr.querySelectorAll('td'));
-            const row = { printerName: cells[0]?.textContent.trim(), printerUrl: cells[0]?.querySelector('a')?.href, toner: {}, paper: {}, errors: [], };
-            headers.forEach((h, i) => { const val = cells[i]?.textContent.trim(); if (['Cyan', 'Magenta', 'Yellow', 'Black'].includes(h)) row.toner[h.toLowerCase()] = val; if (h.startsWith('Drawer')) row.paper[h] = val; });
-            return row;
-        });
-        const errorHeader = Array.from(doc.querySelectorAll('h2')).find(h => /errors/i.test(h.textContent));
-        if (errorHeader?.nextElementSibling?.tagName === 'UL') {
-            Array.from(errorHeader.nextElementSibling.querySelectorAll('li')).forEach(li => { const [pName, ...msgParts] = li.textContent.split(':'); const p = printerData.find(pd => pd.printerName === pName.trim()); if(p) p.errors.push(msgParts.join(':').trim()); });
-        }
-        let mainTableHTML = `<table><thead><tr><th style="width:20px;"></th><th>Printer</th><th>Cyan</th><th>Magenta</th><th>Yellow</th><th>Black</th><th>Drawer 1</th><th>Drawer 2</th><th>Drawer 3</th><th>Drawer 4</th></tr></thead><tbody>`;
-        printerData.forEach(p => { const s=getRowStatus(p); mainTableHTML += `<tr><td><span class="status-dot ${s}"></span></td><td class="printer-name"><a href="${p.printerUrl}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${p.printerName}</a></td>${renderTonerCell(p.toner.cyan,'cyan')}${renderTonerCell(p.toner.magenta,'magenta')}${renderTonerCell(p.toner.yellow,'yellow')}${renderTonerCell(p.toner.black,'black')}${renderPaperCell(p.paper['Drawer 1'])}${renderPaperCell(p.paper['Drawer 2'])}${renderPaperCell(p.paper['Drawer 3'])}${renderPaperCell(p.paper['Drawer 4'])}</tr>`; });
-        document.getElementById('tableContainer').innerHTML = mainTableHTML + '</tbody></table>';
-        
-        // **NEW**: Redesigned "Attention Needed" table logic with reordered columns
-        const attentionPrinters = printerData.filter(p => getRowStatus(p) !== 'ok');
-        if (attentionPrinters.length > 0) {
-            let attentionHTML = `<table><thead><tr><th>Printer</th><th>Drawer 1</th><th>Drawer 2</th><th>Drawer 3</th><th>Drawer 4</th><th>Toner / Other Issues</th></tr></thead><tbody>`;
-            attentionPrinters.forEach(p => {
-                const otherIssues = p.errors.filter(e => !e.toLowerCase().includes('drawer'));
-                const issuesCellHTML = `<td class="issue-list">${otherIssues.map(i => `<span>${i}</span>`).join('') || '—'}</td>`;
-                attentionHTML += `
-                    <tr>
-                        <td class="printer-name">${p.printerName}</td>
-                        ${renderPaperCell(p.paper['Drawer 1'])}
-                        ${renderPaperCell(p.paper['Drawer 2'])}
-                        ${renderPaperCell(p.paper['Drawer 3'])}
-                        ${renderPaperCell(p.paper['Drawer 4'])}
-                        ${issuesCellHTML}
-                    </tr>`;
-            });
-            document.getElementById('attentionContainer').innerHTML = attentionHTML + '</tbody></table>';
-        } else {
-            document.getElementById('attentionContainer').innerHTML = `<div class="alert-box ok">All printers are in good condition.</div>`;
-        }
-        
-        const errorPrinters = printerData.filter(p => p.errors.length > 0);
-        if (errorPrinters.length > 0) {
-            let errorHTML = '<div class="alert-box errors"><ul>'; errorPrinters.forEach(p => p.errors.forEach(msg => errorHTML += `<li><strong>${p.printerName}:</strong> ${msg}</li>`));
-            document.getElementById('errorLog').innerHTML = errorHTML + '</ul></div>';
-        } else { document.getElementById('errorLog').innerHTML = '<div class="alert-box ok">No errors reported.</div>'; }
+    // Paper thresholds
+    const paperBars = paperVals.map(v => parseBars(v));
+    const hasPaperCritical = paperBars.some(b => b !== null && b <= 1);   // 0–1 bar
+    const hasPaperWarn     = !hasPaperCritical && paperBars.some(b => b === 2); // exactly 2 bars
+
+    // Toner thresholds
+    const tonerPcts = tonerVals.map(v => parsePercent(v));
+    const hasTonerCritical = tonerPcts.some(p => p === 0) ||
+                             tonerVals.some(v => /\bempty\b/i.test(String(v)));
+    const hasTonerWarn     = !hasTonerCritical && tonerPcts.some(p => p !== null && p <= 10);
+
+    // Only treat real error keywords as critical; ignore benign "no paper" unless drawers are low
+    const isRealError = (msg) => {
+      const m = String(msg).toLowerCase();
+      if (/no\s*paper/.test(m)) return hasPaperCritical || hasPaperWarn;
+      return /(jam|error|failed|timeout|replace|install|service)/i.test(m);
+    };
+    const hasErrorCritical = errorsArr.some(isRealError);
+
+    if (hasPaperCritical || hasTonerCritical || hasErrorCritical) return 'err';
+    if (hasPaperWarn || hasTonerWarn) return 'warn';
+    return 'ok';
+  }
+
+  async function runAndRender() {
+    const runBtn = document.getElementById('runBtn'), refreshBtn = document.getElementById('refreshBtn'), runStatusDiv = document.getElementById('runStatus');
+    const sTime=Date.now(); runBtn.innerHTML='<span class="loader"></span> Running...'; runBtn.disabled=true; refreshBtn.disabled=true;
+    try {
+      const res = await fetch('/api/run', { method: 'POST' });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'Run failed');
+      renderAll(data.rows);
+      const fTime=((Date.now()-sTime)/1000).toFixed(1);
+      runStatusDiv.innerHTML=`Status: <span class="ok">Done in ${fTime}s</span>`;
+    } catch (e) {
+      const fTime=((Date.now()-sTime)/1000).toFixed(1);
+      document.getElementById('runStatus').innerHTML=`Status: <span class="err">Error after ${fTime}s</span>`;
+      console.error(e);
+    } finally {
+      runBtn.innerHTML='Run Full Check'; runBtn.disabled=false; refreshBtn.disabled=false;
+    }
+  }
+
+  async function refreshOnly() {
+    document.getElementById('tableContainer').innerHTML = '<p style="padding:1.5rem;" class="muted">Loading...</p>';
+    try {
+      const res = await fetch('/api/last', { cache: 'no-store' });
+      const data = await res.json();
+      if (!data.ok) {
+        // Fallback: no cache yet → run a full check
+        await runAndRender();
+        return;
+      }
+      renderAll(data.rows);
+    } catch (e) {
+      console.error(e);
+      await runAndRender();
+    }
+  }
+
+  function renderAll(printerData) {
+    document.getElementById('ts').textContent = new Date().toLocaleString();
+
+    let mainTableHTML = `<table><thead><tr><th style="width:20px;"></th><th>Printer</th><th>Cyan</th><th>Magenta</th><th>Yellow</th><th>Black</th><th>Drawer 1</th><th>Drawer 2</th><th>Drawer 3</th><th>Drawer 4</th></tr></thead><tbody>`;
+    printerData.forEach(p => {
+      const s=getRowStatus(p);
+      mainTableHTML += `<tr>
+        <td><span class="status-dot ${s}"></span></td>
+        <td class="printer-name"><a href="${p.url}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${p.name}</a></td>
+        ${renderTonerCell((p.toner||{}).Cyan,'cyan')}
+        ${renderTonerCell((p.toner||{}).Magenta,'magenta')}
+        ${renderTonerCell((p.toner||{}).Yellow,'yellow')}
+        ${renderTonerCell((p.toner||{}).Black,'black')}
+        ${renderPaperCell((p.paper||{})['Drawer 1'])}
+        ${renderPaperCell((p.paper||{})['Drawer 2'])}
+        ${renderPaperCell((p.paper||{})['Drawer 3'])}
+        ${renderPaperCell((p.paper||{})['Drawer 4'])}
+      </tr>`;
+    });
+    document.getElementById('tableContainer').innerHTML = mainTableHTML + '</tbody></table>';
+
+    const attentionPrinters = printerData.filter(p => getRowStatus(p) !== 'ok');
+    if (attentionPrinters.length > 0) {
+      let attentionHTML = `<table><thead><tr><th>Printer</th><th>Drawer 1</th><th>Drawer 2</th><th>Drawer 3</th><th>Drawer 4</th><th>Toner / Other Issues</th></tr></thead><tbody>`;
+      attentionPrinters.forEach(p => {
+        const otherIssues = (p.errors||[]).filter(e => !String(e).toLowerCase().includes('drawer'));
+        const issuesCellHTML = `<td class="issue-list">${otherIssues.map(i => `<span>${i}</span>`).join('') || '—'}</td>`;
+        attentionHTML += `<tr>
+          <td class="printer-name">${p.name}</td>
+          ${renderPaperCell((p.paper||{})['Drawer 1'])}
+          ${renderPaperCell((p.paper||{})['Drawer 2'])}
+          ${renderPaperCell((p.paper||{})['Drawer 3'])}
+          ${renderPaperCell((p.paper||{})['Drawer 4'])}
+          ${issuesCellHTML}
+        </tr>`;
+      });
+      document.getElementById('attentionContainer').innerHTML = attentionHTML + '</tbody></table>';
+    } else {
+      document.getElementById('attentionContainer').innerHTML = `<div class="alert-box ok">All printers are in good condition.</div>`;
     }
 
-    const runBtn = document.getElementById('runBtn'), refreshBtn = document.getElementById('refreshBtn'), runStatusDiv = document.getElementById('runStatus');
-    let timerInterval=null;
-    async function runCheck() { const sTime=Date.now(); runBtn.innerHTML='<span class="loader"></span> Running...'; runBtn.disabled=true; refreshBtn.disabled=true; timerInterval=setInterval(()=>{const eTime=((Date.now()-sTime)/1000).toFixed(1); runStatusDiv.innerHTML=`Status: <span class="warn">Running for ${eTime}s</span>`;},100); try { const res=await fetch('/run-check',{method:'POST'}); await fetchAndRender(); const fTime=((Date.now()-sTime)/1000).toFixed(1); if(!res.ok){runStatusDiv.innerHTML=`Status: <span class="err">Error in ${fTime}s</span>`; throw new Error(`Request failed`);} runStatusDiv.innerHTML=`Status: <span class="ok">Done in ${fTime}s</span>`; } catch (e) { const fTime=((Date.now()-sTime)/1000).toFixed(1); runStatusDiv.innerHTML=`Status: <span class="err">Error after ${fTime}s</span>`; console.error(e); } finally { clearInterval(timerInterval); runBtn.innerHTML='Run Full Check'; runBtn.disabled=false; refreshBtn.disabled=false; } }
-    runBtn.addEventListener('click', runCheck);
-    refreshBtn.addEventListener('click', fetchAndRender);
-    document.addEventListener('DOMContentLoaded', fetchAndRender);
+    const errorPrinters = printerData.filter(p => (p.errors||[]).length > 0);
+    if (errorPrinters.length > 0) {
+      let errorHTML = '<div class="alert-box errors"><ul>';
+      errorPrinters.forEach(p => (p.errors||[]).forEach(msg => errorHTML += `<li><strong>${p.name}:</strong> ${msg}</li>`));
+      document.getElementById('errorLog').innerHTML = errorHTML + '</ul></div>';
+    } else {
+      document.getElementById('errorLog').innerHTML = '<div class="alert-box ok">No errors reported.</div>';
+    }
+  }
+
+  const runBtn = document.getElementById('runBtn'), refreshBtn = document.getElementById('refreshBtn');
+  runBtn.addEventListener('click', runAndRender);
+  refreshBtn.addEventListener('click', refreshOnly);
+  document.addEventListener('DOMContentLoaded', refreshOnly);
   </script>
 </body>
 </html>

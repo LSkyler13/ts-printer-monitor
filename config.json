@@ -16,7 +16,7 @@
       { "name": "SneadFloor2",             "url": "https://2jg04803.sndh2.ptr.vcu.edu:8443/rps/" }
     ],
     "http": {
-      "timeout_seconds": 15,
+      "timeout_seconds": 8,
       "verify_ssl": false,
       "user_agent": "Mozilla/5.0"
     }

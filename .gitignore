@@ -15,3 +15,13 @@ connectivity.json
 .idea/
 *.log
 *.pkg
+
+# build artifacts
+app-printers.json
+app-report.html
+connectivity.json
+
+# env and Python cache
+.venv/
+__pycache__/
+*.pyc
