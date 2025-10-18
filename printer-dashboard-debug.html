@@ -220,7 +220,17 @@
   // --- EVENT HANDLING & TRIGGERS ---
   async function runFullCheck() {
     const runBtn = document.getElementById('runBtn'), refreshBtn = document.getElementById('refreshBtn'), runStatusDiv = document.getElementById('runStatus');
-    const sTime=Date.now(); runBtn.innerHTML='<span class="loader"></span> Running...'; runBtn.disabled=true; refreshBtn.disabled=true;
+    const sTime = Date.now();
+    runBtn.innerHTML = '<span class="loader"></span> Running...';
+    runBtn.disabled = true;
+    refreshBtn.disabled = true;
+
+    // Start a live timer
+    let timerInterval = setInterval(() => {
+        const elapsed = ((Date.now() - sTime) / 1000).toFixed(1);
+        runStatusDiv.innerHTML = `Status: Running for ${elapsed}s...`;
+    }, 100); // Update every 100ms
+
     try {
       // First, trigger the backend to generate a new report
       const runRes = await fetch('/api/run', { method: 'POST' });
@@ -228,14 +238,17 @@
       // Now, scrape the newly generated report
       const printerData = await scrapeAndParseReport();
       renderAll(printerData);
-      const fTime=((Date.now()-sTime)/1000).toFixed(1);
-      runStatusDiv.innerHTML=`Status: <span class="ok">Done in ${fTime}s</span>`;
+      const fTime = ((Date.now() - sTime) / 1000).toFixed(1);
+      runStatusDiv.innerHTML = `Status: <span class="ok">Done in ${fTime}s</span>`;
     } catch (e) {
-      const fTime=((Date.now()-sTime)/1000).toFixed(1);
-      document.getElementById('runStatus').innerHTML=`Status: <span class="err">Error after ${fTime}s</span>`;
+      const fTime = ((Date.now() - sTime) / 1000).toFixed(1);
+      runStatusDiv.innerHTML = `Status: <span class="err">Error after ${fTime}s</span>`;
       console.error(e);
     } finally {
-      runBtn.innerHTML='Run Full Check'; runBtn.disabled=false; refreshBtn.disabled=false;
+      clearInterval(timerInterval); // Stop the live timer
+      runBtn.innerHTML = 'Run Full Check';
+      runBtn.disabled = false;
+      refreshBtn.disabled = false;
     }
   }
 
